@@ -18,7 +18,7 @@ export interface CoinMarketData {
 }
 
 export interface CoinHistoryData {
-    prices: [number, number][]; // [timestamp, price]
+    prices: [number, number][];
     market_caps: [number, number][];
     total_volumes: [number, number][];
 }
