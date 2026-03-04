@@ -13,92 +13,44 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { getCoinsMarkets, getCoinHistory } from '@/lib/api';
 import { CoinMarketData, ChartDataPoint, TimePeriod } from '@/types/crypto';
 import { useLanguage } from '@/lib/i18n';
+import { useCryptoStore } from '@/store/useCryptoStore';
 
 export default function Dashboard() {
-  // Estados para manejar los datos del dashboard
-  const [coins, setCoins] = useState<CoinMarketData[]>([]);
-  const [selectedCoinId, setSelectedCoinId] = useState('bitcoin'); // Moneda seleccionada por defecto
-  const [historyData, setHistoryData] = useState<ChartDataPoint[]>([]);
-  const [period, setPeriod] = useState<TimePeriod>('7d'); // Periodo de tiempo para el gráfico de histórico
-  const [currency, setCurrency] = useState<'usd' | 'eur'>('usd'); // Moneda fiat de referencia
-
-  // Estados para manejar la experiencia de usuario (UI/UX)
-  const [loading, setLoading] = useState(true); // Carga inicial de datos de mercado
-  const [historyLoading, setHistoryLoading] = useState(true); // Carga de datos históricos para el gráfico
-  const [error, setError] = useState<string | null>(null); // Manejo de errores de la API
+  // Integramos el Global Store de Zustand
+  const {
+    coins,
+    selectedCoinId,
+    setSelectedCoinId,
+    historyData,
+    period,
+    setPeriod,
+    currency,
+    loading,
+    historyLoading,
+    error,
+    fetchCoins,
+    fetchHistory
+  } = useCryptoStore();
 
   const { t } = useLanguage();
 
-  // Efecto 1: Carga Inicial de Datos.
-  // Se ejecuta al montar el componente o cuando cambia la moneda fiat (USD/EUR)
+  // Efecto 1: Cargar mercados globales
+  // fetchCoins internamente verifica si necesita tirar red o usar la caché in-memory
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setLoading(true);
-        // Llamada a nuestro servicio API para obtener del endpoint de CoinGecko las top monedas
-        const data = await getCoinsMarkets(currency);
-        setCoins(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error al obtener criptomonedas:', err);
-        setError(t.dashboard.fetchError);
-      } finally {
-        setLoading(false); // Siempre quitamos el estado de carga al terminar
-      }
-    };
-    fetchInitialData();
-  }, [currency]);
+    fetchCoins();
+  }, [currency, fetchCoins]);
 
-  // Efecto 2: Carga del Historial de Precios.
-  // Se ejecuta cuando el usuario selecciona OTRA moneda en el filtro, cambia el periodo, o cambia USD/EUR
+  // Efecto 2: Cargar historial del gráfico
+  // Igual, fetchHistory cachea las respuestas por id, moneda y periodo
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        setHistoryLoading(true);
-        // Mapeamos nuestro tipo de periodo a los días que requiere la API de CoinGecko
-        const daysMap: Record<TimePeriod, string> = {
-          '24h': '1',
-          '7d': '7',
-          '30d': '30',
-          '1y': '365'
-        };
-        const history = await getCoinHistory(selectedCoinId, currency, daysMap[period]);
-
-        // Formateamos los datos para que Recharts los pueda leer fácilmente
-        const formattedData: ChartDataPoint[] = history.prices.map(([timestamp, price]) => ({
-          time: new Date(timestamp).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            // Si el periodo es de 24h, mostramos también la hora para mayor detalle
-            hour: period === '24h' ? '2-digit' : undefined
-          }),
-          price: Number(price.toFixed(2))
-        }));
-
-        setHistoryData(formattedData);
-      } catch (err) {
-        console.error('Error obteniendo el historial:', err);
-      } finally {
-        setHistoryLoading(false);
-      }
-    };
     fetchHistory();
-  }, [selectedCoinId, period, currency]);
+  }, [selectedCoinId, period, currency, fetchHistory]);
 
-  // Función para refrescar los datos manualmente si el usuario hace clic en el botón
+  // Refresco manual forza que ignoremos la caché
   const handleRefresh = async () => {
-    setLoading(true);
-    try {
-      const data = await getCoinsMarkets(currency);
-      setCoins(data);
-    } catch (err) {
-      setError(t.dashboard.refreshError);
-    } finally {
-      setLoading(false);
-    }
+    await fetchCoins(true);
   };
 
   const selectedCoinData = coins.find(c => c.id === selectedCoinId);
