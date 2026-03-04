@@ -16,8 +16,10 @@ import {
 import AllocationChart from '@/components/charts/AllocationChart';
 import { useLanguage } from '@/lib/i18n';
 import { clsx } from 'clsx';
+import { useCryptoStore } from '@/store/useCryptoStore';
+import { useEffect } from 'react';
 
-const ASSETS = [
+const ASSETS_MOCK = [
     { name: 'Bitcoin', symbol: 'BTC', amount: '1.25', value: '$81,250.00', change: '+5.45%', positive: true, char: 'B', color: 'bg-orange-500/10', text: 'text-orange-500' },
     { name: 'Ethereum', symbol: 'ETH', amount: '12.40', value: '$32,240.00', change: '-1.20%', positive: false, char: 'E', color: 'bg-blue-500/10', text: 'text-blue-500' },
     { name: 'Solana', symbol: 'SOL', amount: '150.00', value: '$11,250.00', change: '+12.4%', positive: true, char: 'S', color: 'bg-purple-500/10', text: 'text-purple-500' },
@@ -26,6 +28,30 @@ const ASSETS = [
 
 export default function PortfolioPage() {
     const { t } = useLanguage();
+    const { coins, currency, fetchCoins } = useCryptoStore();
+
+    useEffect(() => {
+        fetchCoins();
+    }, [currency, fetchCoins]);
+
+    const displayAssets = coins.length > 0 ? coins.slice(0, 4).map((c, i) => {
+        const isPositive = c.price_change_percentage_24h >= 0;
+        const fakeAmounts = ['1.25', '12.40', '150.00', '5000.00']; // Para mantener estructura del mockup de portafolio
+        return {
+            name: c.name,
+            symbol: c.symbol.toUpperCase(),
+            amount: fakeAmounts[i] || '1.00',
+            value: `${currency === 'usd' ? '$' : '€'}${(c.current_price * parseFloat(fakeAmounts[i] || '1')).toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+            change: `${isPositive ? '+' : ''}${c.price_change_percentage_24h?.toFixed(2)}%`,
+            positive: isPositive,
+            char: c.symbol[0].toUpperCase(),
+            color: isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10',
+            text: isPositive ? 'text-emerald-500' : 'text-rose-500',
+        };
+    }) : ASSETS_MOCK.map(a => ({
+        ...a,
+        value: a.value.replace('$', currency === 'usd' ? '$' : '€')
+    }));
 
     return (
         <div className="space-y-6 fade-in h-full w-full pb-10">
@@ -58,7 +84,7 @@ export default function PortfolioPage() {
                                     <Wallet className="w-4 h-4 mr-2 text-brand-primary" /> {t.portfolio.estimatedBalance}
                                 </h3>
                                 <div className="flex flex-col md:flex-row md:items-baseline md:space-x-4 mb-6">
-                                    <span className="text-4xl md:text-5xl font-black text-foreground tracking-tighter">$124,563.00</span>
+                                    <span className="text-4xl md:text-5xl font-black text-foreground tracking-tighter">{currency === 'usd' ? '$' : '€'}124,563.00</span>
                                     <span className="flex items-center text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md text-xs font-black mt-2 md:mt-0 w-fit">
                                         <ArrowUpRight className="w-4 h-4 mr-1" />
                                         +12.5% ($13,840)
@@ -73,11 +99,11 @@ export default function PortfolioPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-6 border-t border-border/50">
                             <div>
                                 <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-widest">{t.portfolio.investment}</p>
-                                <p className="text-lg font-black text-foreground">$100k</p>
+                                <p className="text-lg font-black text-foreground">{currency === 'usd' ? '$' : '€'}100k</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-widest">{t.portfolio.profit}</p>
-                                <p className="text-lg font-black text-emerald-500">+$24.5k</p>
+                                <p className="text-lg font-black text-emerald-500">+{currency === 'usd' ? '$' : '€'}24.5k</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-widest">{t.portfolio.assetsCount}</p>
@@ -121,7 +147,7 @@ export default function PortfolioPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
-                                {ASSETS.map((asset, i) => (
+                                {displayAssets.map((asset, i) => (
                                     <tr key={i} className="hover:bg-muted/20 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-3">

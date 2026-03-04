@@ -17,10 +17,10 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useLanguage } from '@/lib/i18n';
+import { useCryptoStore } from '@/store/useCryptoStore';
+import { useEffect } from 'react';
 
-// COINS config remains outside
-
-const COINS = [
+const COINS_MOCK = [
     { name: 'Bitcoin', symbol: 'BTC', price: '$65,240.50', change: '+2.45%', positive: true, marketCap: '$1.28T', vol: '$32.1B', color: 'bg-orange-500/10', text: 'text-orange-500', char: 'B' },
     { name: 'Ethereum', symbol: 'ETH', price: '$3,420.15', change: '-1.20%', positive: false, marketCap: '$410.5B', vol: '$15.8B', color: 'bg-blue-500/10', text: 'text-blue-500', char: 'E' },
     { name: 'Solana', symbol: 'SOL', price: '$145.80', change: '+8.42%', positive: true, marketCap: '$64.2B', vol: '$4.2B', color: 'bg-purple-500/10', text: 'text-purple-500', char: 'S' },
@@ -30,10 +30,36 @@ const COINS = [
 
 export default function MarketsPage() {
     const { t } = useLanguage();
+    const { coins, currency, fetchCoins } = useCryptoStore();
+
+    // Reutilizar la caché almacenada por Dashboard o fetchear si entra directo
+    useEffect(() => {
+        fetchCoins();
+    }, [currency, fetchCoins]);
+
+    const displayCoins = coins.length > 0 ? coins.map(c => {
+        const isPositive = c.price_change_percentage_24h >= 0;
+        return {
+            name: c.name,
+            symbol: c.symbol.toUpperCase(),
+            price: `${currency === 'usd' ? '$' : '€'}${c.current_price.toLocaleString()}`,
+            change: `${isPositive ? '+' : ''}${c.price_change_percentage_24h?.toFixed(2)}%`,
+            positive: isPositive,
+            marketCap: `${currency === 'usd' ? '$' : '€'}${(c.market_cap / 1e9).toFixed(2)}B`,
+            vol: `${currency === 'usd' ? '$' : '€'}${(c.total_volume / 1e9).toFixed(2)}B`,
+            char: c.symbol[0].toUpperCase(),
+            color: isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10',
+            text: isPositive ? 'text-emerald-500' : 'text-rose-500',
+        };
+    }).slice(0, 10) : COINS_MOCK.map(c => ({
+        ...c,
+        price: c.price.replace('$', currency === 'usd' ? '$' : '€'),
+        marketCap: c.marketCap.replace('$', currency === 'usd' ? '$' : '€')
+    }));
 
     const MARKET_STATS = [
-        { label: t.markets.globalStats.marketCap, value: '$2.64T', change: '+2.4%', positive: true, icon: Globe },
-        { label: t.markets.globalStats.volume24h, value: '$84.2B', change: '-5.1%', positive: false, icon: BarChart3 },
+        { label: t.markets.globalStats.marketCap, value: `${currency === 'usd' ? '$' : '€'}2.64T`, change: '+2.4%', positive: true, icon: Globe },
+        { label: t.markets.globalStats.volume24h, value: `${currency === 'usd' ? '$' : '€'}84.2B`, change: '-5.1%', positive: false, icon: BarChart3 },
         { label: t.markets.globalStats.btcDominance, value: '52.1%', change: '+0.2%', positive: true, icon: Activity },
     ];
 
@@ -105,7 +131,7 @@ export default function MarketsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
-                                {COINS.map((coin, i) => (
+                                {displayCoins.map((coin, i) => (
                                     <tr key={i} className="hover:bg-muted/20 transition-colors group cursor-pointer">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-3">

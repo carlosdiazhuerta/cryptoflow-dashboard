@@ -30,7 +30,12 @@ Plataforma de visualización de datos de mercado criptográfico desarrollada par
   - **Referrer-Policy**: Control de privacidad en el intercambio de cabeceras.
 - **Manejo de Tasa de Peticiones**: Lógica de fallback para gestionar límites de la API externa (Rate Limiting).
 
-### 5. Estándares de Accesibilidad (WCAG)
+### 5. Gestión de Estado y Rendimiento (Zustand)
+- **Store Centralizado**: Orquestación del estado global (monedas fíat seleccionadas, filtros temporales) independiente de la jerarquía de componentes, evitando *prop-drilling*.
+- **Caché Inteligente In-Memory**: Mecanismo de re-validación por tiempo de expiración (2 mins para precios en vivo, 15 mins para datos históricos) para mitigar drásticamente el consumo y redundancias hacia la API externa de CoinGecko.
+- **Stale-while-revalidate**: El UI sirve instantáneamente los últimos datos conocidos de la memoria local para navegar entre pestañas (Dashboard, Mercados, Portfolio) sin tiempos de carga (Load Spinners).
+
+### 6. Estándares de Accesibilidad (WCAG)
 - **Semántica HTML**: Uso estricto de etiquetas seccionales y roles ARIA.
 - **Interactividad**: Soporte completo para navegación mediante teclado y gestión de focos.
 
@@ -41,6 +46,7 @@ Plataforma de visualización de datos de mercado criptográfico desarrollada par
 - **Core**: Next.js 15 (App Router)
 - **Lenguaje**: TypeScript 5+ (Strict Mode)
 - **Estilos**: Tailwind CSS 4
+- **Estado Global**: Zustand
 - **Validación**: Jest / React Testing Library
 - **Infraestructura**: Firebase Hosting
 
